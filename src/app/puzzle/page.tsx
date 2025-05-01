@@ -1,12 +1,50 @@
 "use client";
 import { useEffect, useState } from "react";
-import Editor from "@monaco-editor/react";
 import { usePuzzle } from "../context/puzzleContext";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "@hello-pangea/dnd";
+import { MonacoHighlighter } from "../../components/monacoHighlighter";
 
 interface Block {
   id: number;
   code: string;
 }
+
+// Grid size for spacing
+const grid = 8;
+
+// Styling for draggable items
+const getItemStyle = (isDragging: boolean, draggableStyle: any) => ({
+  userSelect: "none",
+  padding: grid,
+  margin: `0 0 ${grid}px 0`,
+  background: isDragging ? "#f0f9ff" : "white", // Light blue when dragging
+  borderRadius: "0.375rem", // rounded-lg equivalent
+  width: "fit-content",
+  boxShadow: isDragging
+    ? "0 4px 6px rgba(0, 0, 0, 0.1)"
+    : "0 1px 2px rgba(0, 0, 0, 0.05)",
+  ...draggableStyle,
+});
+
+// Styling for droppable containers
+const getListStyle = (isDraggingOver: boolean, isSource: boolean) => ({
+  background: isDraggingOver
+    ? isSource
+      ? "#fef3c7"
+      : "#fffbeb" // Slightly darker when dragging over
+    : isSource
+    ? "#fef9c3"
+    : "#fef5d3", // Normal background colors
+  padding: grid,
+  borderRadius: "0.5rem",
+  minHeight: "80vh",
+  overflow: "auto",
+});
 
 export default function PuzzlePage() {
   const puzzle = usePuzzle();
@@ -17,103 +55,120 @@ export default function PuzzlePage() {
     setBlocks(puzzle.blocks.sort(() => Math.random() - 0.5));
   }, [puzzle.blocks]);
 
-  const handleDragStart = (
-    e: React.DragEvent<HTMLDivElement>,
-    blockId: number
-  ) => {
-    e.dataTransfer.setData("text/plain", blockId.toString());
-  };
+  const onDragEnd = (result: DropResult) => {
+    const { source, destination } = result;
+    if (!destination) return; // dropped outside any list
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const id = parseInt(e.dataTransfer.getData("text/plain"), 10);
-    const block = blocks.find((b) => b.id === id);
-    if (block) {
-      setPlaced((prev) => [...prev, block]);
-      setBlocks((prev) => prev.filter((b) => b.id !== id));
+    // Figure out which arrays we’re working with
+    const srcList = source.droppableId === "available" ? blocks : placed;
+    const dstList = destination.droppableId === "available" ? blocks : placed;
+
+    // If same list → just reorder
+    if (source.droppableId === destination.droppableId) {
+      const newList = Array.from(srcList);
+      const [moved] = newList.splice(source.index, 1);
+      newList.splice(destination.index, 0, moved);
+
+      if (source.droppableId === "available") {
+        setBlocks(newList);
+      } else {
+        setPlaced(newList);
+      }
+      return;
     }
-  };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
+    // Cross‐list move
+    const newSrc = Array.from(srcList);
+    const newDst = Array.from(dstList);
+    const [moved] = newSrc.splice(source.index, 1);
+    newDst.splice(destination.index, 0, moved);
 
-  const editorOptions = {
-    readOnly: true,
-    minimap: { enabled: false },
-    lineNumbers: "off" as const,
-    folding: false,
-    glyphMargin: false,
-    lineDecorationsWidth: 0,
-    lineNumbersMinChars: 0,
-    overviewRulerLanes: 0,
-    renderLineHighlight: "none" as const,
-    scrollbar: { vertical: "hidden", horizontal: "hidden" },
-    padding: { top: 4, bottom: 4 },
-    contextmenu: false,
-    fontSize: 14,
-    fontWeight: "bold",
-    fontFamily: "monospace",
-    lineHeight: 1.2,
-    wordWrap: "on" as const,
-    wrappingStrategy: "advanced" as const,
-    automaticLayout: true,
-    fixedOverflowWidgets: true,
-    scrollBeyondLastLine: false,
+    // Write back to state in the correct order
+    if (source.droppableId === "available") {
+      setBlocks(newSrc);
+      setPlaced(newDst);
+    } else {
+      setPlaced(newSrc);
+      setBlocks(newDst);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-200 p-6">
-      <div className="grid grid-cols-2 gap-4">
-        {/* Left: Available blocks */}
-        <div className="bg-yellow-100 p-4 rounded-lg h-[80vh] overflow-auto">
-          {blocks.map((block) => (
-            <div
-              key={block.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, block.id)}
-              className="mb-2 px-1 py-1 bg-white rounded-lg shadow-sm cursor-move"
-            >
-              <div className="pointer-events-none">
-                <Editor
-                  height="24px"
-                  defaultLanguage="python"
-                  value={block.code}
-                  options={editorOptions}
-                />
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className="grid grid-cols-2 gap-4">
+          {/* Left: Available blocks */}
+          <Droppable droppableId="available">
+            {(provided, snapshot) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                style={getListStyle(snapshot.isDraggingOver, true)}
+              >
+                {blocks.map((block, index) => (
+                  <Draggable
+                    key={block.id}
+                    draggableId={block.id.toString()}
+                    index={index}
+                  >
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        style={getItemStyle(
+                          snapshot.isDragging,
+                          provided.draggableProps.style
+                        )}
+                      >
+                        <MonacoHighlighter code={block.code} />
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
               </div>
-            </div>
-          ))}
-        </div>
+            )}
+          </Droppable>
 
-        {/* Right: Drop zone */}
-        <div
-          className="bg-yellow-50 p-4 rounded-lg h-[80vh] overflow-auto"
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-        >
-          {placed.length === 0 && (
-            <p className="text-gray-500">Drag code blocks here</p>
-          )}
-          {placed.map((block) => (
-            <div
-              key={block.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, block.id)}
-              className="mb-2 px-2 py-1 bg-white rounded-lg shadow-sm cursor-move"
-            >
-              <div className="pointer-events-none">
-                <Editor
-                  height="24px"
-                  defaultLanguage="python"
-                  value={block.code}
-                  options={editorOptions}
-                />
+          {/* Right: Drop zone */}
+          <Droppable droppableId="placed">
+            {(provided, snapshot) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                style={getListStyle(snapshot.isDraggingOver, false)}
+              >
+                {placed.length === 0 && (
+                  <p className="text-gray-500 p-4">Drag code blocks here</p>
+                )}
+                {placed.map((block, index) => (
+                  <Draggable
+                    key={block.id}
+                    draggableId={block.id.toString()}
+                    index={index}
+                  >
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        style={getItemStyle(
+                          snapshot.isDragging,
+                          provided.draggableProps.style
+                        )}
+                      >
+                        <MonacoHighlighter code={block.code} />
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
               </div>
-            </div>
-          ))}
+            )}
+          </Droppable>
         </div>
-      </div>
+      </DragDropContext>
 
       {/* Controls */}
       <div className="mt-6 flex justify-between">
