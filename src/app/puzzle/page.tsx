@@ -10,6 +10,7 @@ import {
 import { MonacoHighlighter } from "../../components/monacoHighlighter";
 import toast, { Toaster } from "react-hot-toast";
 import { Block } from "../context/puzzleContext";
+
 // Grid size for spacing
 const grid = 8;
 
@@ -26,15 +27,15 @@ const getItemStyle = (
   paddingRight: grid * 0.5,
   margin: `${grid}px 0 ${grid}px ${grid}px`,
   background: isDragging ? "#f0f9ff" : "white", // Light blue when dragging
-  borderRadius: "0.375rem", // rounded-lg equivalent
+  borderRadius: "0.375rem",
   width: "fit-content",
   boxShadow: isDragging
     ? "0 4px 6px rgba(0, 0, 0, 0.1)"
     : "0 1px 2px rgba(0, 0, 0, 0.05)",
-  position: "relative", // Add this to position the question mark relative to the block
+  position: "relative",
   border: incorrectBlocks.includes(blockId || -1)
     ? "2px solid #ef4444"
-    : "none", // Apply red border if block is incorrect
+    : "none",
   marginLeft: indent ? indent * 16 : 0,
   ...draggableStyle,
 });
@@ -58,8 +59,9 @@ export default function PuzzlePage() {
   const puzzle = usePuzzle();
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [placed, setPlaced] = useState<Block[]>([]);
-  const [incorrectBlockIndices, setIncorrectBlockIndices] = useState<number[]>([]);
-  // Add a new state to track incorrect blocks
+  const [incorrectBlockIndices, setIncorrectBlockIndices] = useState<number[]>(
+    []
+  );
 
   const [history, setHistory] = useState<{ block: Block[]; placed: Block[] }[]>(
     []
@@ -82,12 +84,10 @@ export default function PuzzlePage() {
     setCurrentStep(0);
   }, [puzzle.blocks]);
 
-
   const onDragEnd = (result: DropResult) => {
     const { source, destination } = result;
-    if (!destination) return; // dropped outside any list
+    if (!destination) return;
 
-    // Figure out which arrays we're working with
     const srcList = source.droppableId === "available" ? blocks : placed;
     const dstList = destination.droppableId === "available" ? blocks : placed;
 
@@ -145,9 +145,14 @@ export default function PuzzlePage() {
   };
 
   const handleCheck = (placed: Block[]) => {
-    const incorrectBlockIndices = placed.filter((b, idx) => b.id - 1 !== idx).map((b) => b.id);
+    const incorrectBlockIndices = placed
+      .filter((b, idx) => b.id - 1 !== idx)
+      .map((b) => b.id);
 
-    if (incorrectBlockIndices.length === 0 && placed.length === puzzle.blocks.length) {
+    if (
+      incorrectBlockIndices.length === 0 &&
+      placed.length === puzzle.blocks.length
+    ) {
       toast.success("Correct!");
       setIncorrectBlockIndices([]);
     } else {
@@ -157,26 +162,52 @@ export default function PuzzlePage() {
   };
 
   const handleHint = () => {
-    const incorrect = placed.filter((b, idx) => b.id - 1 !== idx);
-    if (incorrect.length === 0) return;
+    const misplaced = placed
+      .map((b, idx) => ({
+        id: b.id,
+        currentIndex: idx,
+        correctIndex: b.id - 1,
+      }))
+      .filter(
+        ({ currentIndex, correctIndex }) => currentIndex !== correctIndex
+      );
 
-    console.log(incorrect.length);
+    const upCandidates = misplaced.filter(
+      ({ currentIndex, correctIndex }) => correctIndex < currentIndex
+    );
+    const downCandidates = misplaced.filter(
+      ({ currentIndex, correctIndex }) => correctIndex > currentIndex
+    );
+    // 3) pick which direction to hint
+    let direction: "up" | "down";
+    let bucket: typeof misplaced;
 
-    //picking random block
-    const randomBlock = incorrect[Math.floor(Math.random() * incorrect.length)];
-    const currentIndex = placed.findIndex((b) => b.id === randomBlock.id);
-    const correctIndex = randomBlock.id - 1;
+    if (upCandidates.length && !downCandidates.length) {
+      direction = "up";
+      bucket = upCandidates;
+    } else if (downCandidates.length && !upCandidates.length) {
+      direction = "down";
+      bucket = downCandidates;
+    } else {
+      // both exist → randomly choose one direction
+      if (Math.random() < 0.5) {
+        direction = "up";
+        bucket = upCandidates;
+      } else {
+        direction = "down";
+        bucket = downCandidates;
+      }
+    }
 
-    const direction: "up" | "down" =
-      correctIndex < currentIndex ? "up" : "down";
+    // 4) pick one block from that bucket
+    const choice = bucket[Math.floor(Math.random() * bucket.length)];
+    if (choice) {
+      setHintedBlockId(choice.id);
+      setHintDirection(direction);
+      setHintDisabled(true);
+    }
 
-    console.log(randomBlock);
-    console.log(direction);
-
-    setHintedBlockId(randomBlock.id);
-    setHintDirection(direction);
-    setHintDisabled(true);
-
+    // 6) clear everything after 10 seconds
     setTimeout(() => {
       setHintDisabled(false);
       setHintedBlockId(null);
