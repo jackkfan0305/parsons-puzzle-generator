@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Editor from "@monaco-editor/react";
+import { usePuzzle } from "../context/puzzleContext";
 
 interface Block {
   id: number;
@@ -8,14 +9,13 @@ interface Block {
 }
 
 export default function PuzzlePage() {
-  const [blocks, setBlocks] = useState<Block[]>([
-    { id: 1, code: "return True" },
-    { id: 2, code: "return False" },
-    { id: 3, code: "if dq.pop(0) != dq.pop():" },
-    { id: 4, code: "while len(dq) > 1:" },
-    { id: 5, code: "dq = list(s)" },
-  ]);
+  const puzzle = usePuzzle();
+  const [blocks, setBlocks] = useState<Block[]>([]);
   const [placed, setPlaced] = useState<Block[]>([]);
+
+  useEffect(() => {
+    setBlocks(puzzle.blocks.sort(() => Math.random() - 0.5));
+  }, [puzzle.blocks]);
 
   const handleDragStart = (
     e: React.DragEvent<HTMLDivElement>,
@@ -104,7 +104,7 @@ export default function PuzzlePage() {
             >
               <div className="pointer-events-none">
                 <Editor
-                  height="30px"
+                  height="24px"
                   defaultLanguage="python"
                   value={block.code}
                   options={editorOptions}
