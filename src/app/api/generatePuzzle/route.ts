@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
-});
-
 export async function POST(req: NextRequest) {
+  const apiKey = req.headers.get("X-API-KEY");
+
+  if (!apiKey) {
+    return NextResponse.json({ error: "API key is required" }, { status: 401 });
+  }
   const { prompt } = await req.json();
 
   if (typeof prompt !== "string" || prompt.trim() === "") {
     return NextResponse.json({ error: "Missing description" }, { status: 400 });
   }
+
+  const openai = new OpenAI({
+    apiKey: apiKey,
+  });
 
   const systemPrompt = `
   You are a code-puzzle generator.  When given a Python task description, you must output **only** a JSON array of objects, each with these exact fields:
