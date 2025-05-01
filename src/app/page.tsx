@@ -1,14 +1,30 @@
-'use client';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+"use client";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { usePuzzle, Block } from "./context/puzzleContext";
 
 export default function Home() {
   const router = useRouter();
-  const [prompt, setPrompt] = useState('');
+  const { setBlocks } = usePuzzle()
+  const [prompt, setPrompt] = useState("");
+  const [loading, setLoading] = useState(false);
+  const handleGenerate = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/generatePuzzle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      })
+      const data: Block[] = await res.json()
+      setBlocks(data)              // ← stash in context
+      router.push('/puzzle')       // ← go show it
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
 
-  const handleGenerate = () => {
-    console.log('User prompt:', prompt);
-    router.push('/puzzle');
   };
 
   return (
@@ -24,7 +40,7 @@ export default function Home() {
           onClick={handleGenerate}
           className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-2xl shadow hover:bg-blue-700 transition"
         >
-          Generate
+          {loading ? "Generating..." : "Generate"}
         </button>
       </div>
     </div>
