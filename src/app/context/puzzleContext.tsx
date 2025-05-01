@@ -1,7 +1,7 @@
 'use client'
 import React, { createContext, useContext, useState } from 'react'
 
-export interface Block { id: number; code: string; hint: string }
+export interface Block { id: number; code: string; hint: string; indent: number }
 interface PuzzleContextType {
   blocks: Block[]
   setBlocks: (b: Block[]) => void

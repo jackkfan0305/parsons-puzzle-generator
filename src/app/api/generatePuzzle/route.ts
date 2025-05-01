@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
   • "id"   : a unique integer in the order the lines belong
   • "code" : one line of valid Python code (no leading/trailing whitespace)  
   • "hint" : a brief, plain-English explanation of that line in respect to the task
+  • "indent": an integer ≥ 0 representing the nesting level (each level = one block indent)
   Important:
     1. Output must be a single JSON array, starting with [ and ending with ].
     2. Do not include any backticks, markdown, comments, or extra keys.
