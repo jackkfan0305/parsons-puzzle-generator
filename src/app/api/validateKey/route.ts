@@ -12,7 +12,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize OpenAI with the provided key
     const openai = new OpenAI({
       apiKey: apiKey,
     });
@@ -20,7 +19,6 @@ export async function POST(request: NextRequest) {
     // Make a simple request to validate the key
     await openai.models.list();
 
-    // If we get here, the key is valid
     return NextResponse.json({ valid: true });
   } catch (error: any) {
     console.error("Error validating API key:", error);
