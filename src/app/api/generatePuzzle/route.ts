@@ -34,10 +34,8 @@ export async function POST(req: NextRequest) {
         { role: "user", content: userPrompt },
       ],
       temperature: 0.2, // low temp for accuracy
-      // max_tokens: 300, // enough for a few lines
     });
 
-    // Parse the JSON from the assistant
     const text = completion.choices[0].message?.content ?? "";
 
     console.log("generated text: " + text);
