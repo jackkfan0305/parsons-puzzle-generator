@@ -5,26 +5,25 @@ import { usePuzzle, Block } from "./context/puzzleContext";
 
 export default function Home() {
   const router = useRouter();
-  const { setBlocks } = usePuzzle()
+  const { setBlocks } = usePuzzle();
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const handleGenerate = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const res = await fetch('/api/generatePuzzle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/generatePuzzle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),
-      })
-      const data: Block[] = await res.json()
-      setBlocks(data)              // ← stash in context
-      router.push('/puzzle')       // ← go show it
+      });
+      const data: Block[] = await res.json();
+      setBlocks(data);
+      router.push("/puzzle");
     } catch (err) {
-      console.error(err)
+      console.error(err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-
   };
 
   return (
