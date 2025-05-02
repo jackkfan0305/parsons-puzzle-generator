@@ -83,7 +83,8 @@ export default function Home() {
       }
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error(error);
       setKeyError("Error validating API key");
       return false;
     } finally {

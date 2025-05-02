@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
     await openai.models.list();
 
     return NextResponse.json({ valid: true });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error validating API key:", error);
 

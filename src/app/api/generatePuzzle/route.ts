@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
     console.log("generated text: " + text);
     const data = JSON.parse(text);
     return NextResponse.json(data);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     console.error(e);
     return NextResponse.json(

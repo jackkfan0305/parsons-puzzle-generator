@@ -17,6 +17,7 @@ const grid = 8;
 // Styling for draggable items
 const getItemStyle = (
   isDragging: boolean,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   draggableStyle?: any,
   blockId?: number,
   incorrectBlocks: number[] = [],
