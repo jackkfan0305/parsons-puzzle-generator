@@ -43,7 +43,6 @@ export async function POST(req: NextRequest) {
 
     const text = completion.choices[0].message?.content ?? "";
 
-    console.log("generated text: " + text);
     const data = JSON.parse(text);
     return NextResponse.json(data);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -126,7 +126,6 @@ export default function PuzzlePage() {
   };
 
   const handleRedo = () => {
-    console.log(currentStep);
     if (currentStep < history.length - 1) {
       const nextState = history[currentStep + 1];
       setBlocks(nextState.block);
@@ -137,7 +136,6 @@ export default function PuzzlePage() {
 
   const handleUndo = () => {
     if (currentStep > 0) {
-      console.log(currentStep);
       const previousState = history[currentStep - 1];
       setBlocks(previousState.block);
       setPlaced(previousState.placed);
@@ -200,7 +198,6 @@ export default function PuzzlePage() {
       }
     }
 
-    // 4) pick one block from that bucket
     const choice = bucket[Math.floor(Math.random() * bucket.length)];
     if (choice) {
       setHintedBlockId(choice.id);
@@ -208,7 +205,6 @@ export default function PuzzlePage() {
       setHintDisabled(true);
     }
 
-    // 6) clear everything after 10 seconds
     setTimeout(() => {
       setHintDisabled(false);
       setHintedBlockId(null);
